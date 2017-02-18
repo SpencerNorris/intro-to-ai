@@ -267,6 +267,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if node['type'] == 'max':
               if score > alpha:
                 alpha = score
+              if score > node['best_move'][1]:
                 node['best_move'] = (next_action, score)
               if beta < alpha:
                 return node['best_move']
@@ -275,6 +276,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if node['type'] == 'min':
               if score < beta:
                 beta = score
+              if score < node['best_move'][1]:
                 node['best_move'] = (next_action, score)
               if beta < alpha:
                 return node['best_move']
@@ -297,6 +299,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
         """
+
+
         def _getSubtreeAction(state, index, depth, alpha, beta):
           #Reset index as necessary
           if index == state.getNumAgents():
@@ -304,10 +308,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
               index = 0
               #Base case; will always be returned from min node, so minimize beta
               if depth == self.depth:
-                val = self.evaluationFunction(state)
-                return (None, val)
+                return (None, self.evaluationFunction(state))
 
-          #Generate successor states; if there aren't any legal actions, return the current state
           node = {
             'type': 'min' if index > 0 else 'max'
           }
@@ -319,8 +321,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           #If there aren't any legal moves, it's a leaf node
           legal_actions = state.getLegalActions(index)
           if legal_actions == list():
-            val = self.evaluationFunction(state)
-            return (None, val)
+            return (None, self.evaluationFunction(state))
 
           #Branch subtree
           for next_action in legal_actions:
@@ -330,8 +331,9 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             if node['type'] == 'max':
               if score > alpha:
                 alpha = score
+              if score > node['best_move'][1]:
                 node['best_move'] = (next_action, score)
-              if beta <= alpha:
+              if beta < alpha:
                 return node['best_move']
 
             #Modify beta for min node
@@ -343,11 +345,12 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           elif node['type'] == 'min':
             return (None, node['sum'])
 
+          return node['best_move']
 
         #Root call
         action = _getSubtreeAction(gameState, 0, 0, float("-inf"), float("inf"))
         return action[0]
-
+ 
 def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
@@ -355,8 +358,26 @@ def betterEvaluationFunction(currentGameState):
 
       DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    def _manhattan_distance(p1, p2):
+      return abs(p2[1] - p1[1]) + abs(p2[0] - p1[0])
+
+    score = currentGameState.getScore()
+    food = currentGameState.getFood()
+    pos = currentGameState.getPacmanPosition()
+
+    #Sum the value of the food, divided by the square of the Manhattan distance from PacMan
+    #Note: food is worth 10 points each
+    sum = 0
+    for x in range(food.width):
+      for y in range(food.height):
+        if food[x][y]:
+          sum += 10 / _manhattan_distance(pos, (x, y))
+
+    
+    return sum + score
+
+
 
 # Abbreviation
 better = betterEvaluationFunction
