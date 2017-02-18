@@ -226,6 +226,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
 
         action = _getSubtreeAction(gameState, 0, 0)
+        print action
         return action[1]
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -238,73 +239,50 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
 
-        def _getSubtreeAction(state, index, depth, alpha, beta, action):
+        def _getSubtreeAction(state, index, depth, alpha, beta):
           #Reset index as necessary
           if index == state.getNumAgents():
               depth += 1
               index = 0
-              #Base case (assumes leaf node is child of min node)
+              #Base case; will always be returned from min node, so minimize beta
               if depth == self.depth:
-                return (action, (self.evaluationFunction(state), beta, self.evaluationFunction(state)))
+                return (None, self.evaluationFunction(state))
 
-          #Setup
+          #Generate successor states; if there aren't any legal actions, return the current state
           node = {
             'type': 'min' if index > 0 else 'max',
-            'children': {}
+            'best_move': (None, float('inf')) if index > 0 else (None, float('-inf'))
           }
+
+          #If there aren't any legal moves, it's a leaf node
           legal_actions = state.getLegalActions(index)
-
-          #if there aren't any legal actions, return the current state,
-          #adjusting alpha and beta as necessary
           if legal_actions == list():
-            if node['type'] == 'max':
-              if self.evaluationFunction(state) > alpha:
-                return (action, (self.evaluationFunction(state), beta, self.evaluationFunction(state)))
-              else:
-                return (action, (alpha, beta, self.evaluationFunction(state)))
-            elif node['type'] == 'min':
-              if self.evaluationFunction(state) < beta:
-                return (action, (alpha, self.evaluationFunction(state), self.evaluationFunction(state)))
-              else:
-                return (action, (alpha, beta, self.evaluationFunction(state)))
+            return (None, self.evaluationFunction(state))
 
-          #Generate successor states
+          #Branch subtree
           for next_action in legal_actions:
-            node['children'][next_action] = _getSubtreeAction(state.generateSuccessor(index, next_action),
-                                        index + 1, depth, alpha, beta, next_action)
-
-            sub_state = node['children'][next_action]
-            alpha_p, beta_p, score = sub_state[1][0], sub_state[1][1], sub_state[1][2]
-
-            #Adjust alpha and beta
+            move, score = _getSubtreeAction(state.generateSuccessor(index, next_action),
+                                            index + 1, depth, alpha, beta)
+            #modify alpha for max node
             if node['type'] == 'max':
-              if beta_p > alpha:
-                alpha = beta_p
+              if score > alpha:
+                alpha = score
+                node['best_move'] = (next_action, score)
+              if beta < alpha:
+                return node['best_move']
 
+            #Modify beta for min node
             if node['type'] == 'min':
-              if index + 1 == state.getNumAgents():
-                if alpha_p < beta:
-                  beta = alpha_p
-              elif index + 1 < state.getNumAgents():
-                if beta_p < beta:
-                  beta = beta_p
+              if score < beta:
+                beta = score
+                node['best_move'] = (next_action, score)
+              if beta < alpha:
+                return node['best_move']
 
-            #Check whether to prune
-            if beta < alpha:
-              if node['type'] == 'min':
-                return (action, (alpha, beta, beta))
-              elif node['type'] == 'max':
-                return (action, (alpha, beta, alpha))
-
-          #Get the desired value and return along with alpha, beta
-          if node['type'] == 'min':
-            return min(node['children'].iteritems(), key=lambda pair: pair[1][1][2])[1]
-          elif node['type'] == 'max':
-            return max(node['children'].iteritems(), key=lambda pair: pair[1][1][2])[1]
+          return node['best_move']
 
         #Root call
-        action = _getSubtreeAction(gameState, 0, 0, float("-inf"), float("inf"), None)
-        print action
+        action = _getSubtreeAction(gameState, 0, 0, float("-inf"), float("inf"))
         return action[0]
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
@@ -319,8 +297,56 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def _getSubtreeAction(state, index, depth, alpha, beta):
+          #Reset index as necessary
+          if index == state.getNumAgents():
+              depth += 1
+              index = 0
+              #Base case; will always be returned from min node, so minimize beta
+              if depth == self.depth:
+                val = self.evaluationFunction(state)
+                return (None, val)
+
+          #Generate successor states; if there aren't any legal actions, return the current state
+          node = {
+            'type': 'min' if index > 0 else 'max'
+          }
+          if node['type'] == 'max':
+            node['best_move'] = (None, float('-inf'))
+          elif node['type'] == 'min':
+            node['sum'] = 0
+
+          #If there aren't any legal moves, it's a leaf node
+          legal_actions = state.getLegalActions(index)
+          if legal_actions == list():
+            val = self.evaluationFunction(state)
+            return (None, val)
+
+          #Branch subtree
+          for next_action in legal_actions:
+            move, score = _getSubtreeAction(state.generateSuccessor(index, next_action),
+                                            index + 1, depth, alpha, beta)
+            #modify alpha for max node
+            if node['type'] == 'max':
+              if score > alpha:
+                alpha = score
+                node['best_move'] = (next_action, score)
+              if beta <= alpha:
+                return node['best_move']
+
+            #Modify beta for min node
+            if node['type'] == 'min':
+              node['sum'] += float(score) / float(len(legal_actions))
+
+          if node['type'] == 'max':
+            return node['best_move']
+          elif node['type'] == 'min':
+            return (None, node['sum'])
+
+
+        #Root call
+        action = _getSubtreeAction(gameState, 0, 0, float("-inf"), float("inf"))
+        return action[0]
 
 def betterEvaluationFunction(currentGameState):
     """
