@@ -70,78 +70,20 @@ class ReflexAgent(Agent):
         """
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
-        newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        x, y = successorGameState.getPacmanPosition()
+        one_hops = set([(x+1, y), (x-1, y), (x, y-1), (x, y+1)])
+        food = successorGameState.getFood()
+        ghosts = set([ghost.getPosition() for ghost in successorGameState.getGhostStates()])
+        successor_score = successorGameState.getScore()
 
-        #Check if a ghost is at the location; NEVER GO THERE
-        if successorGameState.getPacmanPosition() in successorGameState.getGhostPositions():
-          return abs(successorGameState.getScore() * 1000) * -1
+        if not one_hops.intersection(ghosts) == set():
+          successor_score -= 30
 
-        #Check proximity to ghosts, score and add
-        currPos = currentGameState.getPacmanPosition()
-        numGhostsApproaching = 0
-        for ghostPosition in successorGameState.getGhostPositions():
+        if food[x][y]:
+          successor_score += 100
 
-          if ((newPos[0] - currPos[0] <= 0 and ghostPosition[0] <= currPos[0]) 
-            or (newPos[0] - currPos[0] >= 0 and ghostPosition[0] >= currPos[0])):
-            try:
-              numGhostsApproaching += 1 / abs(pow(newPos[0] - ghostPosition[0], 2))
-            except ZeroDivisionError:
-              numGhostsApproaching += 1
+        return successor_score
 
-          if ((newPos[1] - currPos[1] < 0 and ghostPosition[1] < currPos[1]) 
-              or (newPos[1] - currPos[1] > 0 and ghostPosition[1] > currPos[1])):
-            try:
-              numGhostsApproaching += 1 / abs(pow(newPos[1] - ghostPosition[1], 2))
-            except ZeroDivisionError:
-              numGhostsApproaching += 1
-            continue
-
-        #Check proximity to food, score and add
-        foodScore = 0
-        numMovingTowards = 0
-        numMovingAway = 0
-        for x in range(newFood.width):
-          for y in range(newFood.height):
-
-            #Is Pacman moving away from the food?
-            if newFood[x][y] == True:
-              if (newPos[0] - currPos[0] < 0 and x < currPos[0]) or (newPos[0] - currPos[0] > 0 and x > currPos[0]):
-                try:
-                  numMovingTowards += 1 / pow(newPos[0] - x, 2)
-                  continue
-                except ZeroDivisionError:
-                  numMovingTowards += 1
-              if (newPos[1] - currPos[1] < 0 and y < currPos[1]) or (newPos[1] - currPos[1] > 0 and y > currPos[1]):
-                try:
-                  numMovingTowards += 1 / pow(newPos[0] - y, 2)
-                  continue
-                except ZeroDivisionError:
-                  numMovingTowards += 1
-              if (newPos[0] - currPos[0] < 0 and x > currPos[0]) or (newPos[0] - currPos[0] > 0 and x < currPos[0]):
-                try:
-                 numMovingAway += 1 / pow(newPos[0] - x, 2)
-                 continue
-                except ZeroDivisionError:
-                  numMovingAway += 1
-              if (newPos[1] - currPos[1] < 0 and y > currPos[1]) or (newPos[1] - currPos[1] > 0 and y < currPos[1]):
-                try:
-                 numMovingAway += 1 / pow(newPos[0] - y, 2)
-                 continue
-                except ZeroDivisionError:
-                  numMovingAway += 1
-        netChange = numMovingTowards - numMovingAway
-        multVal = 1 if netChange > 0 else -1
-
-        #Check proximity to ghosts, score and subtract
-        try:
-          ghostComposite = successorGameState.getScore() * numGhostsApproaching / len(successorGameState.getGhostPositions())
-          foodComposite =  abs(successorGameState.getScore()) * multVal / successorGameState.getNumFood()
-          return successorGameState.getScore() + foodComposite - ghostComposite
-        except ZeroDivisionError:
-          return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -374,7 +316,7 @@ def betterEvaluationFunction(currentGameState):
         if food[x][y]:
           sum += 10 / _manhattan_distance(pos, (x, y))
 
-    
+
     return sum + score
 
 
