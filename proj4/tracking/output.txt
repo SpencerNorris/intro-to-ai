@@ -1,0 +1,25 @@
+Starting on 4-21 at 22:39:38
+
+Question q4
+===========
+
+*** q4) Particle filter initialization test: 0 inference errors.
+*** PASS: test_cases/q4/1-ParticleObserve.test
+*** q4) Particle filter observe test: 0 inference errors.
+*** PASS: test_cases/q4/2-ParticleObserve.test
+*** FAIL: Terminated with a string exception.
+
+### Question q4: 0/3 ###
+
+
+Finished at 22:40:03
+
+Provisional grades
+==================
+Question q4: 0/3
+------------------
+Total: 0/3
+
+Your grades are NOT yet registered.  To register your grades, make sure
+to follow your instructor's guidelines to receive credit on your project.
+
